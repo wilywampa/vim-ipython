@@ -58,6 +58,7 @@ endif
 python << EOF
 import vim
 import sys
+import re
 vim_ipython_path = vim.eval("expand('<sfile>:h')")
 sys.path.append(vim_ipython_path)
 from vim_ipython import *
