@@ -167,6 +167,8 @@ def km_from_string(s=''):
     while not connected and (time.time() - starttime) < 5.0:
         if not attempt and os.path.isfile(s):
             fullpath = s
+        elif not attempt and os.path.isfile(find_connection_file(s)):
+            fullpath = find_connection_file(s)
         else:
             try:
                 s = fullpath = find_connection_file('kernel*')
