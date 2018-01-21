@@ -159,6 +159,12 @@ def km_from_string(s=''):
 
     global km, kc, send, history, complete, object_info
 
+    def try_find(s):
+        try:
+            return os.path.isfile(find_connection_file(s))
+        except Exception:
+            return False
+
     # Test if connection is still alive
     connected = False
     starttime = time.time()
@@ -167,7 +173,7 @@ def km_from_string(s=''):
     while not connected and (time.time() - starttime) < 5.0:
         if not attempt and os.path.isfile(s):
             fullpath = s
-        elif not attempt and os.path.isfile(find_connection_file(s)):
+        elif not attempt and try_find(s):
             fullpath = find_connection_file(s)
         else:
             try:
