@@ -11,6 +11,7 @@ import ast
 import logging
 import os
 import re
+import subprocess
 import sys
 import textwrap
 try:
@@ -74,6 +75,17 @@ def write(text):
     return sys.stdout.write(str(text).encode())
 
 
+if not hasattr(os, 'get_terminal_size'):
+    def get_terminal_size():
+        try:
+            rows, columns = os.popen('stty size', 'r').read().split()
+            return int(rows), int(columns)
+        except Exception:
+            return 80, 24
+
+    os.get_terminal_size = get_terminal_size
+
+
 class IPythonMonitor(object):
 
     def __init__(self):
@@ -85,7 +97,7 @@ class IPythonMonitor(object):
 
     def wrap(self, text, include_blank_lines=True, prompt=False):
         leading, text, trailing = parts.search(text).groups()
-        max_width = os.get_terminal_size().columns
+        max_width = os.get_terminal_size()[0]
         prompt_width = len('Out []: ' + str(self.last_execution_count + 1))
         output = []
         for i, line in enumerate(text.splitlines()):
