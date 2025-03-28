@@ -458,7 +458,7 @@ def ipy_complete(base, current_line, pos):
     try:
         m = get_child_msg(msg_id, timeout=vim_vars.get('ipython_completion_timeout', 2))
         try:
-            return get_completion_metadata()
+            return get_completion_metadata(base, m['content'])
         except KeyError:  # completion_metadata function not available
             matches = m['content']['matches']
             metadata = [{} for _ in matches]
@@ -467,11 +467,18 @@ def ipy_complete(base, current_line, pos):
         echo("no reply from IPython kernel")
         raise IOError
 
-def get_completion_metadata():
+def get_completion_metadata(base, content):
     """Generate and fetch completion metadata."""
-    request = '''
+    request = f'''
 try:
-    _completions = completion_metadata(get_ipython())
+    _completion_args = (
+        get_ipython(),
+        {content['matches']!r},
+        {base!r},
+        {content['cursor_start']!r},
+        {content['cursor_end']!r},
+    )
+    _completions = completion_metadata(*_completion_args)
 except Exception:
     pass
 '''
