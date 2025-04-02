@@ -22,6 +22,7 @@ except ImportError:
 
 import ast
 import os
+import re
 import sys
 import time
 PY3 = sys.version_info[0] == 3
@@ -69,7 +70,7 @@ def vim_variable(name, default=None):
     return vim.eval(name) if exists else default
 
 def vim_regex_escape(x):
-    for old, new in (("[", "\\["), ("]", "\\]"), (":", "\\:"), (".", "\."), ("*", "\\*")):
+    for old, new in (("[", "\\["), ("]", "\\]"), (":", "\\:"), (".", "\\."), ("*", "\\*")):
         x = x.replace(old, new)
     return x
 
@@ -332,11 +333,28 @@ def get_doc(word, level=0):
     # get around unicode problems when interfacing with vim
     return [d.encode(vim_encoding) for d in doc]
 
-import re
-# from http://serverfault.com/questions/71285/in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file
-strip = re.compile('\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
+def strip_ansi_colour(text):
+    """Strip ANSI colour sequences from a string.
+
+    Args:
+        text (str): Text string to be stripped.
+
+    Returns:
+        iter[str]: A generator for each returned character. Note,
+        this will include newline characters.
+
+    """
+    import io
+    buff = io.StringIO(text)
+    while (b := buff.read(1)):
+        if b == '\x1b':
+            while (b := buff.read(1)) != 'm':
+                continue
+        else:
+            yield b
+
 def strip_color_escapes(s):
-    return strip.sub('',s)
+    return ''.join(strip_ansi_colour(s))
 
 def get_doc_msg(msg_id):
     n = 13 # longest field name (empirically)
@@ -438,11 +456,11 @@ def get_doc_buffer(level=0, word=None):
         vim.command('setlocal syntax=python')
 
 def ipy_complete(base, current_line, pos):
-    if re.match('^\s*(import|from)\s+', current_line):
+    if re.match(r'^\s*(import|from)\s+', current_line):
         pos -= len(current_line) - len(current_line.lstrip())
         current_line = current_line.lstrip()
     else:
-        match = re.match('^\s*from\s+\w+(\.\w+)*\s+import\s+(\w+,\s+)*', current_line)
+        match = re.match(r'^\s*from\s+\w+(\.\w+)*\s+import\s+(\w+,\s+)*', current_line)
         if match:
             module = match.string.strip().split()[1]
             current_line = 'from {module} import {base}'.format(
@@ -533,8 +551,8 @@ def update_subchannel_msgs(debug=False, force=False):
         vim.command(
             "try"
             "|silent! wincmd P"
-            "|catch /^Vim\%((\a\+)\)\=:E441/"
-            "|silent pedit +set\ ma vim-ipython"
+            "|catch /^Vim\\%((\\a\\+)\\)\\=:E441/"
+            "|silent pedit +set\\ ma vim-ipython"
             "|silent! wincmd P"
             "|endtry")
         # if the current window is called 'vim-ipython'
@@ -544,7 +562,7 @@ def update_subchannel_msgs(debug=False, force=False):
         else:
             # close preview window, it was something other than 'vim-ipython'
             vim.command("pcl")
-            vim.command("silent pedit +set\ ma vim-ipython")
+            vim.command("silent pedit +set\\ ma vim-ipython")
             vim.command("wincmd P") #switch to preview window
             # subchannel window quick quit key 'q'
             vim.command('nnoremap <buffer> q :q<CR>')
@@ -825,7 +843,7 @@ def InputPrompt(force=False, hide_input=False):
                 vim.command(
                     "try"
                     "|silent! wincmd P"
-                    "|catch /^Vim\%((\a\+)\)\=:E441/"
+                    "|catch /^Vim\\%((\\a\\+)\\)\\=:E441/"
                     "|endtry")
 
                 if vim.eval('@%')=='vim-ipython':
